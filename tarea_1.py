@@ -11,6 +11,7 @@ __author__ = 'Juan Pablo Zurita Murillo'
 
 #import entornos_f
 import entornos_o
+from random import choice
 
 class NueveCuartos(entornos_o.Entorno):
     """
@@ -66,9 +67,10 @@ class NueveCuartos(entornos_o.Entorno):
         Lógica de transición entre estados
 
         """
-        if not self.acción_legal(accion):
-            raise ValueError("La acción no es legal para este estado")
-
+        if not self.accion_legal(accion):
+           #raise ValueError("La acción no es legal para este estado")
+           return
+        
         #robot, a, b = self.x
         piso, cuarto = self.x[0]
 
@@ -108,6 +110,35 @@ class NueveCuartos(entornos_o.Entorno):
         #return self.x[0], self.x[" AB".find(self.x[0])]
         piso, cuarto = self.x[0]
         return self.x[0], self.x[1 + (3 * piso) + cuarto]
+    
+class AgenteAleatorio(entornos_o.Agente):
+    """
+    Un agente que solo regresa una accion al azar entre las acciones legales
+
+    """
+    def __init__(self, acciones):
+        self.acciones = acciones
+
+    def programa(self, _):
+        return choice(self.acciones)
+    
+## TEST ##
+
+def test():
+    """
+    Prueba del entorno y los agentes
+
+    """
+    x0= [[0,0]] + ["sucio"] * 9
+    
+    print("Prueba del entorno con un agente aleatorio")
+    entornos_o.simulador(NueveCuartos(x0),
+                         AgenteAleatorio(['ir_Derecha', 'ir_Izquierda', 'subir', 'bajar', 'limpiar', 'nada']),
+                         100)
+
+
+if __name__ == "__main__":
+    test()
 
 
 # Requiere el modulo entornos_f.py o entornos_o.py
