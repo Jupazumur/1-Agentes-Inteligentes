@@ -12,6 +12,7 @@ __author__ = 'Juan Pablo Zurita Murillo'
 #import entornos_f
 import entornos_o
 from random import choice
+import copy
 
 class NueveCuartos(entornos_o.Entorno):
     """
@@ -34,13 +35,16 @@ class NueveCuartos(entornos_o.Entorno):
     con la ubicación del robot y el estado de limpieza
 
     """
-    def __init__(self, x0 = [[0,0]] + ["sucio"] * 9):
+    def __init__(self, x0=None):
         """
         Por default inicialmente el robot está en piso 0, cuarto 0, y todos los cuartos
         están sucios
 
-        """          
-        self.x = x0[:]
+        """
+        if x0 is None:
+            x0 = [[0,0]] + ["sucio"] * 9          
+        #self.x = x0[:]
+        self.x = copy.deepcopy(x0) 
         self.costo = 0
 
     def accion_legal(self, accion):
@@ -122,6 +126,60 @@ class AgenteAleatorio(entornos_o.Agente):
     def programa(self, _):
         return choice(self.acciones)
     
+class AgenteReactivoModeloNueveCuartos(entornos_o.Agente):
+    """
+    Un agente reactivo basado en modelo
+
+    """
+    def __init__(self):
+        """
+        Inicializa el modelo interno en el peor de los casos
+
+        """
+        self.modelo = [[0,0]] + ["sucio"] * 9
+
+    def programa(self, percepcion):
+        robot, situacion = percepcion
+        piso, cuarto = robot
+
+        # Actualiza el modelo interno
+        self.modelo[0] = robot
+
+        self.modelo[1 + (3 * piso) + cuarto] = situacion
+
+        # Decide sobre el modelo interno
+        #a, b = self.modelo[1], self.modelo[2]
+        #return ('nada' if a == b == 'limpio' else
+        #        'limpiar' if situacion == 'sucio' else
+        #        'ir_A' if robot == 'B' else 'ir_B')
+
+        if situacion == 'sucio':
+            return 'limpiar'
+        
+        if piso == 0:
+            if cuarto < 2:
+                return 'ir_Derecha'
+            elif cuarto == 2:
+                return 'subir'
+        
+        elif piso == 1:
+            cuarto_izq_limpio = (self.modelo[4] == 'limpio')
+            if not cuarto_izq_limpio and cuarto > 0:
+                return 'ir_Izquierda'
+            elif cuarto < 2:
+                return 'ir_Derecha'
+            elif cuarto == 2:
+                return 'subir'
+        
+        elif piso == 2:
+            if cuarto > 0:
+                return 'ir_Izquierda'
+            else:
+                return 'nada'
+        
+        return 'nada'
+        
+    
 ## TEST ##
 
 def test():
@@ -134,8 +192,12 @@ def test():
     print("Prueba del entorno con un agente aleatorio")
     entornos_o.simulador(NueveCuartos(x0),
                          AgenteAleatorio(['ir_Derecha', 'ir_Izquierda', 'subir', 'bajar', 'limpiar', 'nada']),
-                         100)
-
+                         200)
+      
+    print("Prueba del entorno con un agente reactivo")
+    entornos_o.simulador(NueveCuartos(x0), 
+                         AgenteReactivoModeloNueveCuartos(), 
+                         200)
 
 if __name__ == "__main__":
     test()
