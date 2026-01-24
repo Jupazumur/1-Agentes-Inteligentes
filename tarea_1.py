@@ -114,7 +114,11 @@ class NueveCuartos(entornos_o.Entorno):
         #return self.x[0], self.x[" AB".find(self.x[0])]
         piso, cuarto = self.x[0]
         return self.x[0], self.x[1 + (3 * piso) + cuarto]
-    
+
+class NueveCuartosCiego(NueveCuartos):
+    def percepcion(self):
+        return self.x[0] #regresamos solo donde está el robot
+
 class AgenteAleatorio(entornos_o.Agente):
     """
     Un agente que solo regresa una accion al azar entre las acciones legales
@@ -147,15 +151,58 @@ class AgenteReactivoModeloNueveCuartos(entornos_o.Agente):
 
         self.modelo[1 + (3 * piso) + cuarto] = situacion
 
-        # Decide sobre el modelo interno
-        #a, b = self.modelo[1], self.modelo[2]
-        #return ('nada' if a == b == 'limpio' else
-        #        'limpiar' if situacion == 'sucio' else
-        #        'ir_A' if robot == 'B' else 'ir_B')
-
         if situacion == 'sucio':
             return 'limpiar'
         
+        if piso == 0:
+            if cuarto < 2:
+                return 'ir_Derecha'
+            elif cuarto == 2:
+                return 'subir'
+        
+        elif piso == 1:
+            cuarto_izq_limpio = (self.modelo[4] == 'limpio')
+            if not cuarto_izq_limpio and cuarto > 0:
+                return 'ir_Izquierda'
+            elif cuarto < 2:
+                return 'ir_Derecha'
+            elif cuarto == 2:
+                return 'subir'
+        
+        elif piso == 2:
+            if cuarto > 0:
+                return 'ir_Izquierda'
+            else:
+                return 'nada'
+        
+        return 'nada'
+    
+class AgenteReactivoModeloNueveCuartosCiego(entornos_o.Agente):
+    """
+    Un agente reactivo basado en modelo, pero el robot no sabe
+    la situación del cuarto
+
+    """
+    def __init__(self):
+        """
+        Inicializa el modelo interno en el peor de los casos
+
+        """
+        self.modelo = [[0,0]] + ["sucio"] * 9
+
+    def programa(self, percepcion):
+        #robot, situacion = percepcion
+        robot = percepcion
+        piso, cuarto = robot
+
+        # Actualiza el modelo interno
+        self.modelo[0] = robot
+
+        #self.modelo[1 + (3 * piso) + cuarto] = situacion
+        if self.modelo[1 + (3 * piso) + cuarto] == 'sucio':
+            self.modelo[1 + (3 * piso) + cuarto] = 'limpio'
+            return 'limpiar'
+       
         if piso == 0:
             if cuarto < 2:
                 return 'ir_Derecha'
@@ -197,6 +244,11 @@ def test():
     print("Prueba del entorno con un agente reactivo")
     entornos_o.simulador(NueveCuartos(x0), 
                          AgenteReactivoModeloNueveCuartos(), 
+                         200)
+    
+    print("Prueba del entorno ciego con un agente reactivo con modelo")
+    entornos_o.simulador(NueveCuartosCiego(x0), 
+                         AgenteReactivoModeloNueveCuartosCiego(), 
                          200)
 
 if __name__ == "__main__":
