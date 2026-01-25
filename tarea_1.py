@@ -12,6 +12,7 @@ __author__ = 'Juan Pablo Zurita Murillo'
 #import entornos_f
 import entornos_o
 from random import choice
+import random
 import copy
 
 class NueveCuartos(entornos_o.Entorno):
@@ -119,6 +120,69 @@ class NueveCuartosCiego(NueveCuartos):
     def percepcion(self):
         return self.x[0] #regresamos solo donde está el robot
 
+class NueveCuartosEstocastico(NueveCuartos):
+   def transicion(self, accion):
+        """
+        Al aspirar:
+        Limpia el 80% de las veces, el 20% deja sucio el cuarto.
+        
+        Al cambiar de cuarto (incluyendo subir, bajar):
+        - Cambia correctamente de cuarto el 80% de la veces
+        - Se queda en su lugar el 10% de la veces
+        - Acción legal aleatoria el 10% de las veces 
+
+        """
+        if not self.accion_legal(accion):
+           return
+        
+        accion_roll = accion
+
+        if accion in ['ir_Derecha', 'ir_Izquierda', 'subir', 'bajar']:
+            roll = random.random()
+
+            if roll > 0.9:
+                acciones = ['ir_Derecha', 'ir_Izquierda', 'subir', 'bajar']
+                acciones_legales = []
+
+                for accion in acciones:
+                    if self.accion_legal(accion):
+                        acciones_legales.append(accion)
+
+                accion_roll = choice(acciones_legales)
+                    
+            elif roll > 0.8:
+                accion_roll = 'nada'
+            else:
+                pass
+
+        piso, cuarto = self.x[0]
+
+        if accion_roll == 'limpiar':
+            roll = random.random()
+
+            self.costo += 1
+
+            if roll > 0.8:
+                pass # No se limpia
+            else:
+                self.x[1 + (3 * piso) + cuarto] = "limpio"
+
+        elif accion_roll == "ir_Derecha":
+            self.costo += 2
+            self.x[0][1] += 1
+
+        elif accion_roll == "ir_Izquierda":
+            self.costo += 2
+            self.x[0][1] -= 1
+
+        elif accion_roll == "subir":
+            self.costo += 3
+            self.x[0][0] += 1
+
+        elif accion_roll == "bajar":
+            self.costo += 3
+            self.x[0][0] -= 1
+
 class AgenteAleatorio(entornos_o.Agente):
     """
     Un agente que solo regresa una accion al azar entre las acciones legales
@@ -225,8 +289,17 @@ class AgenteReactivoModeloNueveCuartosCiego(entornos_o.Agente):
                 return 'nada'
         
         return 'nada'
-        
-    
+
+class AgenteReactivoModeloNueveCuartosEstocastico(AgenteReactivoModeloNueveCuartos):
+    """
+    Un agente reactivo basado en modelo para uso
+    con el entorno estocástico.
+
+    Funcionalmente idéntico al agente reactivo
+    basado en modelo.
+
+    """ 
+
 ## TEST ##
 
 def test():
@@ -249,6 +322,11 @@ def test():
     print("Prueba del entorno ciego con un agente reactivo con modelo")
     entornos_o.simulador(NueveCuartosCiego(x0), 
                          AgenteReactivoModeloNueveCuartosCiego(), 
+                         200)
+    
+    print("Prueba del entorno estocástico con un agente reactivo con modelo")
+    entornos_o.simulador(NueveCuartosEstocastico(x0), 
+                         AgenteReactivoModeloNueveCuartosEstocastico(), 
                          200)
 
 if __name__ == "__main__":
