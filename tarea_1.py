@@ -14,6 +14,8 @@ from random import choice
 import random
 import copy
 
+## ENTORNOS ##
+
 class NueveCuartos(entornos_o.Entorno):
     """
     Clase para un entorno de nueve cuartos.
@@ -28,8 +30,8 @@ class NueveCuartos(entornos_o.Entorno):
     Todos pueden estar sucios o limpios.
 
     Las acciones válidas en el entorno son ("ir_Derecha", "ir_Izquierda", "subir", "bajar" "limpiar", "nada").
-    Solo se puede subir si el robot está en los primeros dos pisos. 
-    Solo se puede bajar del segundo piso para arriba.
+    Solo se puede subir si el robot está en los primeros dos pisos, en los cuartos derechos.
+    Solo se puede bajar del segundo piso para arriba, en los cuartos izquierdos.
 
     Los sensores es una tupla (robot, limpio?)
     con la ubicación del robot y el estado de limpieza
@@ -56,12 +58,16 @@ class NueveCuartos(entornos_o.Entorno):
 
         if accion == "ir_Derecha":
             return cuarto < 2
+        
         elif accion == "ir_Izquierda":
             return cuarto > 0
+        
         elif accion == "subir":
             return piso < 2 and cuarto == 2
+        
         elif accion == "bajar":
             return piso > 0 and cuarto == 0
+        
         elif accion in ("limpiar", "nada"):
             return True
         return False
@@ -73,6 +79,9 @@ class NueveCuartos(entornos_o.Entorno):
         """
         if not self.accion_legal(accion):
            return
+        
+        # Arregla bug visual de posición en simulación
+        self.x[0] = self.x[0][:]
         
         piso, cuarto = self.x[0]
 
@@ -124,6 +133,9 @@ class NueveCuartosEstocastico(NueveCuartos):
         if not self.accion_legal(accion):
            return
         
+        # Arregla bug visual de posición en simulación
+        self.x[0] = self.x[0][:]
+        
         accion_roll = accion
 
         if accion in ['ir_Derecha', 'ir_Izquierda', 'subir', 'bajar']:
@@ -172,6 +184,8 @@ class NueveCuartosEstocastico(NueveCuartos):
             self.costo += 3
             self.x[0][0] -= 1
 
+## AGENTES ##
+
 class AgenteAleatorio(entornos_o.Agente):
     """
     Un agente que solo regresa una accion al azar entre las acciones legales
@@ -207,6 +221,22 @@ class AgenteReactivoModeloNueveCuartos(entornos_o.Agente):
         if situacion == 'sucio':
             return 'limpiar'
         
+        # Si alguno de los pisos debajo está sucio, bajar para limpiar
+        piso_0_sucio = 'sucio' in self.modelo[1:4]
+        piso_1_sucio = 'sucio' in self.modelo[4:7]
+
+        if piso == 2 and (piso_0_sucio or piso_1_sucio):
+            if cuarto > 0:
+                return 'ir_Izquierda'
+            else:
+                return 'bajar'
+        
+        if piso == 1 and piso_0_sucio:
+            if cuarto > 0:
+                return 'ir_Izquierda'
+            else:
+                return 'bajar'
+       
         if piso == 0:
             if cuarto < 2:
                 return 'ir_Derecha'
@@ -215,10 +245,13 @@ class AgenteReactivoModeloNueveCuartos(entornos_o.Agente):
         
         elif piso == 1:
             cuarto_izq_limpio = (self.modelo[4] == 'limpio')
+            
             if not cuarto_izq_limpio and cuarto > 0:
                 return 'ir_Izquierda'
+           
             elif cuarto < 2:
                 return 'ir_Derecha'
+            
             elif cuarto == 2:
                 return 'subir'
         
@@ -233,7 +266,7 @@ class AgenteReactivoModeloNueveCuartos(entornos_o.Agente):
 class AgenteReactivoModeloNueveCuartosCiego(entornos_o.Agente):
     """
     Un agente reactivo basado en modelo, pero el robot no sabe
-    la situación del cuarto
+    la situación del cuarto, solo su propia posición
 
     """
     def __init__(self):
@@ -252,6 +285,28 @@ class AgenteReactivoModeloNueveCuartosCiego(entornos_o.Agente):
         if self.modelo[1 + (3 * piso) + cuarto] == 'sucio':
             self.modelo[1 + (3 * piso) + cuarto] = 'limpio'
             return 'limpiar'
+        
+        # Si alguno de los pisos debajo está sucio, bajar para limpiar
+        piso_0_sucio = 'sucio' in self.modelo[1:4]
+        piso_1_sucio = 'sucio' in self.modelo[4:7]
+
+        if piso == 2 and (piso_0_sucio or piso_1_sucio):
+            if cuarto > 0:
+                return 'ir_Izquierda'
+            else:
+                return 'bajar'
+        
+        if piso == 1 and piso_0_sucio:
+            if cuarto > 0:
+                return 'ir_Izquierda'
+            else:
+                return 'bajar'
+
+        if piso == 0:
+            if cuarto < 2:
+                return 'ir_Derecha'
+            elif cuarto == 2:
+                return 'subir'
        
         if piso == 0:
             if cuarto < 2:
@@ -261,10 +316,13 @@ class AgenteReactivoModeloNueveCuartosCiego(entornos_o.Agente):
         
         elif piso == 1:
             cuarto_izq_limpio = (self.modelo[4] == 'limpio')
+            
             if not cuarto_izq_limpio and cuarto > 0:
                 return 'ir_Izquierda'
+            
             elif cuarto < 2:
                 return 'ir_Derecha'
+            
             elif cuarto == 2:
                 return 'subir'
         
@@ -276,15 +334,72 @@ class AgenteReactivoModeloNueveCuartosCiego(entornos_o.Agente):
         
         return 'nada'
 
-class AgenteReactivoModeloNueveCuartosEstocastico(AgenteReactivoModeloNueveCuartos):
+class AgenteReactivoModeloNueveCuartosEstocastico(entornos_o.Agente):
     """
     Un agente reactivo basado en modelo para uso
     con el entorno estocástico.
 
-    Funcionalmente idéntico al agente reactivo
-    basado en modelo.
+    """
+    def __init__(self):
+        """
+        Inicializa el modelo interno en el peor de los casos
 
-    """ 
+        """
+        self.modelo = [[0,0]] + ["sucio"] * 9
+    
+    def programa(self, percepcion):
+        robot, situacion = percepcion
+        piso, cuarto = robot
+
+        # Actualiza el modelo interno
+        self.modelo[0] = robot
+
+        self.modelo[1 + (3 * piso) + cuarto] = situacion
+
+        if situacion == 'sucio':
+            return 'limpiar'
+        
+        # Si alguno de los pisos debajo está sucio, bajar para limpiar
+        piso_0_sucio = 'sucio' in self.modelo[1:4]
+        piso_1_sucio = 'sucio' in self.modelo[4:7]
+
+        if piso == 2 and (piso_0_sucio or piso_1_sucio):
+            if cuarto > 0:
+                return 'ir_Izquierda'
+            else:
+                return 'bajar'
+        
+        if piso == 1 and piso_0_sucio:
+            if cuarto > 0:
+                return 'ir_Izquierda'
+            else:
+                return 'bajar'
+
+        if piso == 0:
+            if cuarto < 2:
+                return 'ir_Derecha'
+            elif cuarto == 2:
+                return 'subir'
+        
+        elif piso == 1:
+            cuarto_izq_limpio = (self.modelo[4] == 'limpio')
+            
+            if not cuarto_izq_limpio and cuarto > 0:
+                return 'ir_Izquierda'
+            
+            elif cuarto < 2:
+                return 'ir_Derecha'
+            
+            elif cuarto == 2:
+                return 'subir'
+        
+        elif piso == 2:
+            if cuarto > 0:
+                return 'ir_Izquierda'
+            else:
+                return 'nada'
+        
+        return 'nada'
 
 ## TEST ##
 
@@ -300,20 +415,35 @@ def test():
                          AgenteAleatorio(['ir_Derecha', 'ir_Izquierda', 'subir', 'bajar', 'limpiar', 'nada']),
                          200)
       
-    print("Prueba del entorno con un agente reactivo")
+    print("Prueba del entorno con un agente reactivo con modelo")
     entornos_o.simulador(NueveCuartos(x0), 
                          AgenteReactivoModeloNueveCuartos(), 
                          200)
     
+    # En comparación al agente aleatorio, que usualmente ni termina de limpiar todos los cuartos, el agente reactivo
+    # con modelo lo hace con solo 31 de costo. Esto por que recorre el edificio de manera eficiente, en forma de símbolo
+    # matemático de "existe" o "E volteada".
+
+    # Prueba de vista
+    entorno_reluciente = [[0,0]] + ["limpio"] * 9
+    
     print("Prueba del entorno ciego con un agente reactivo con modelo")
-    entornos_o.simulador(NueveCuartosCiego(x0), 
+    entornos_o.simulador(NueveCuartosCiego(entorno_reluciente), 
                          AgenteReactivoModeloNueveCuartosCiego(), 
                          200)
+    
+    # El agente ractivo ciego basado en modelo se comporta igual al no ciego si los estados iniciales
+    # del entorno son los mismos (todo sucio). Si todo está limpio (como en el test), igual ejecuta la rutina
+    # por lo que puede ser más costoso solo por acciones no necesarias. Entonces si lo comparamos al aleatorio,
+    # este igual es mucho menos eficiente.
     
     print("Prueba del entorno estocástico con un agente reactivo con modelo")
     entornos_o.simulador(NueveCuartosEstocastico(x0), 
                          AgenteReactivoModeloNueveCuartosEstocastico(), 
                          200)
+    
+    # El agente ractivo estocástico basado en modelo varía en costo dentro del rango de 31 a 50 a partir de pruebas.
+    # Esto lo hace en promedio 2+ veces más eficiente que el aleatorio.
 
 if __name__ == "__main__":
     test()
