@@ -9,7 +9,6 @@ Revisa el archivo README.md con las instrucciones de la tarea.
 """
 __author__ = 'Juan Pablo Zurita Murillo'
 
-#import entornos_f
 import entornos_o
 from random import choice
 import random
@@ -44,7 +43,7 @@ class NueveCuartos(entornos_o.Entorno):
         """
         if x0 is None:
             x0 = [[0,0]] + ["sucio"] * 9          
-        #self.x = x0[:]
+
         self.x = copy.deepcopy(x0) 
         self.costo = 0
 
@@ -53,7 +52,7 @@ class NueveCuartos(entornos_o.Entorno):
         Indica si una acción es legal dentro de la grid 3x3
 
         """
-        piso, cuarto = self.x[0] # self.x[0] es la parte que contiene las coordenadas
+        piso, cuarto = self.x[0] # La parte que contiene las coordenadas
 
         if accion == "ir_Derecha":
             return cuarto < 2
@@ -73,27 +72,18 @@ class NueveCuartos(entornos_o.Entorno):
 
         """
         if not self.accion_legal(accion):
-           #raise ValueError("La acción no es legal para este estado")
            return
         
-        #robot, a, b = self.x
         piso, cuarto = self.x[0]
 
-        #if accion != "nada" or a == "sucio" or b == "sucio":
-        #    self.costo += 1
-        # ^ Aca todos tienen el mismo costo
-
         if accion == "limpiar":
-            #self.x[" AB".find(self.x[0])] = "limpio"
             self.costo += 1
             self.x[1 + (3 * piso) + cuarto] = "limpio"
 
-        #elif accion == "ir_A":
         elif accion == "ir_Derecha":
             self.costo += 2
             self.x[0][1] += 1
 
-        #elif accion == "ir_B":
         elif accion == "ir_Izquierda":
             self.costo += 2
             self.x[0][1] -= 1
@@ -112,13 +102,12 @@ class NueveCuartos(entornos_o.Entorno):
         en el que se encuentra
 
         """
-        #return self.x[0], self.x[" AB".find(self.x[0])]
         piso, cuarto = self.x[0]
         return self.x[0], self.x[1 + (3 * piso) + cuarto]
 
 class NueveCuartosCiego(NueveCuartos):
     def percepcion(self):
-        return self.x[0] #regresamos solo donde está el robot
+        return self.x[0] # Regresamos solo donde está el robot
 
 class NueveCuartosEstocastico(NueveCuartos):
    def transicion(self, accion):
@@ -255,14 +244,11 @@ class AgenteReactivoModeloNueveCuartosCiego(entornos_o.Agente):
         self.modelo = [[0,0]] + ["sucio"] * 9
 
     def programa(self, percepcion):
-        #robot, situacion = percepcion
         robot = percepcion
         piso, cuarto = robot
 
-        # Actualiza el modelo interno
         self.modelo[0] = robot
 
-        #self.modelo[1 + (3 * piso) + cuarto] = situacion
         if self.modelo[1 + (3 * piso) + cuarto] == 'sucio':
             self.modelo[1 + (3 * piso) + cuarto] = 'limpio'
             return 'limpiar'
@@ -332,8 +318,6 @@ def test():
 if __name__ == "__main__":
     test()
 
-
 # Requiere el modulo entornos_f.py o entornos_o.py
 # Usa el modulo doscuartos_f.py para reutilizar código
 # Agrega los modulos que requieras de python
-
